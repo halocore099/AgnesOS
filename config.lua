@@ -7,6 +7,6 @@ return {
     OWNER = "Agnes",
 
     UPDATE_URL =
-    "https://raw.githubusercontent.com/YOURNAME/AgnesOS/main/"
+    "https://raw.githubusercontent.com/halocore099/AgnesOS/main/"
 
 }
