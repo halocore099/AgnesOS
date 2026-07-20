@@ -1,7 +1,17 @@
 -- Turtle agent for AgnesOS.
 -- Listens for controller commands over rednet and executes turtle jobs.
 
-local stripmine = require("system.stripmine")
+local function loadLocalModule(filename)
+    local running = shell.getRunningProgram() or "system/turtle_agent.lua"
+    local dir = running:match("^(.*)/") or ""
+    local path = shell.resolve(dir .. "/" .. filename)
+    if not fs.exists(path) then
+        error("Missing local module: " .. path)
+    end
+    return dofile(path)
+end
+
+local stripmine = loadLocalModule("stripmine.lua")
 
 local PROTOCOL = "AgnesOS"
 local modemName
