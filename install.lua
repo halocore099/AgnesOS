@@ -1,7 +1,7 @@
 -- AgnesOS Installer v1.0.0
 
 local repo =
-"https://raw.githubusercontent.com/YOURNAME/AgnesOS/main/"
+"https://raw.githubusercontent.com/halocore099/AgnesOS/main/"
 
 
 print("========================")
