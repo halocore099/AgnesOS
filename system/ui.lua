@@ -114,18 +114,16 @@ function ui.progressBar(x, y, w, percent, label)
 end
 
 -- ===== The AgnesOS flower logo =====
--- A small pixel-art blossom, 9x9 cells. '.' = transparent (background
+-- A small pixel-art blossom, 7x7 cells. '.' = transparent (background
 -- shows through), 'P' = petal, 'Y' = center.
 local FLOWER = {
-    "..PPPPP..",
-    ".PP...PP.",
-    "PP.....PP",
-    "P..YYY..P",
-    "PP.YYY.PP",
-    "P..YYY..P",
-    "PP.....PP",
-    ".PP...PP.",
-    "..PPPPP..",
+    "..PPP..",
+    ".P...P.",
+    "P..Y..P",
+    ".YYYY.",
+    "P..Y..P",
+    ".P...P.",
+    "..PPP..",
 }
 
 -- Draws the flower with its top-left pixel at (x, y).
@@ -165,6 +163,29 @@ function ui.drawStem(x, y, stemHeight)
     end
 end
 
+function ui.drawTabs(x, y, tabs, selected, opts)
+    opts = opts or {}
+    local gap = opts.gap or 3
+    local positions = {}
+    local cursorX = x
+    for i, tab in ipairs(tabs) do
+        local label = " " .. tab .. " "
+        positions[i] = { x = cursorX, width = #label }
+        if i == selected then
+            term.setBackgroundColor(ui.theme.selectBg)
+            term.setTextColor(ui.theme.selectFg)
+        else
+            term.setBackgroundColor(ui.theme.bg)
+            term.setTextColor(ui.theme.subtext)
+        end
+        term.setCursorPos(cursorX, y)
+        term.write(label)
+        cursorX = cursorX + #label + gap
+    end
+    term.setBackgroundColor(ui.theme.bg)
+    return positions
+end
+
 -- ===== Menu widget =====
 -- items: list of strings. Returns the 1-based index chosen.
 -- Supports Up/Down + Enter, and number-key shortcuts 1-9.
@@ -176,6 +197,7 @@ function ui.menu(x, y, items, opts)
         labels[i] = tostring(i) .. ". " .. item
         w = math.max(w, #labels[i] + 4)
     end
+    w = math.max(w, opts.minWidth or 22)
     local selected = 1
 
     local function draw()

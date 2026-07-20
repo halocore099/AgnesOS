@@ -126,11 +126,28 @@ local function confirm(prompt)
     return input == "" or input:sub(1, 1) == "y"
 end
 
+local function countEmptySlots()
+    local free = 0
+    for slot = 1, 16 do
+        if turtle.getItemCount(slot) == 0 then
+            free = free + 1
+        end
+    end
+    return free
+end
+
+local function estimateMine(length, branchInterval, branchLength)
+    local branchCount = math.floor(length / branchInterval)
+    local pathSteps = length + branchCount * branchLength * 2
+    local blocks = pathSteps * 3
+    return branchCount, pathSteps, blocks
+end
+
 local function showHeader()
     ui.clear()
     ui.centerText("Strip Mine", 2, ui.theme.title)
     ui.centerText("Simple turtle strip mining routine.", 4, ui.theme.subtext)
-    ui.centerText("Enter the tunnel settings below.", 5, ui.theme.subtext)
+    ui.centerText("Enter your tunnel settings below.", 5, ui.theme.subtext)
 end
 
 local function checkFuel(required)
@@ -146,6 +163,36 @@ local function checkFuel(required)
     return true
 end
 
+local function checkInventory(requiredSlots)
+    local freeSlots = countEmptySlots()
+    if freeSlots < requiredSlots then
+        print("Warning: only " .. freeSlots .. " empty inventory slots available.")
+        print("This strip mine may fill inventory quickly.")
+        if not confirm("Continue anyway?") then
+            return false
+        end
+    end
+    return true
+end
+
+local function showSummary(length, branchInterval, branchLength, turtles)
+    local branchCount, pathSteps, totalBlocks = estimateMine(length, branchInterval, branchLength)
+    local perTurtle = math.max(1, math.ceil(totalBlocks / turtles))
+
+    ui.clear()
+    ui.centerText("Strip Mine Summary", 2, ui.theme.title)
+    ui.centerText("Main tunnel length: " .. length .. " blocks", 4, ui.theme.subtext)
+    ui.centerText("Branch every " .. branchInterval .. " blocks", 5, ui.theme.subtext)
+    ui.centerText("Branch length: " .. branchLength .. " blocks", 6, ui.theme.subtext)
+    ui.centerText("Assigned turtles: " .. turtles, 7, ui.theme.subtext)
+    ui.centerText("Estimated branch points: " .. branchCount, 8, ui.theme.subtext)
+    ui.centerText("Estimated mining steps: " .. pathSteps, 9, ui.theme.subtext)
+    ui.centerText("Estimated blocks mined: " .. totalBlocks, 10, ui.theme.subtext)
+    ui.centerText("Estimated blocks per turtle: " .. perTurtle, 11, ui.theme.subtext)
+    ui.centerText("Press any key to continue...", 13, ui.theme.subtext)
+    os.pullEvent("key")
+end
+
 local function main()
     if not isTurtle() then
         error("The strip mine routine must be run from a turtle.")
@@ -155,16 +202,35 @@ local function main()
     local length = readNumber("Main tunnel length", 20)
     local branchInterval = readNumber("Branch spacing", 4)
     local branchLength = readNumber("Branch length", 4)
+    local turtleCount = readNumber("Turtles assigned", 1)
 
-    local estimatedMoves = length + math.floor(length / branchInterval) * branchLength * 2
-    if not checkFuel(estimatedMoves + 5) then
+    if turtleCount > 1 then
+        print("Note: this script is run from one turtle instance.")
+        print("Assigned turtle count is used for planning only.")
+        if not confirm("Continue with this plan?") then
+            return
+        end
+    end
+
+    local branchCount, pathSteps, totalBlocks = estimateMine(length, branchInterval, branchLength)
+    local requiredFuel = pathSteps + 5
+    local requiredSlots = math.min(12, math.ceil(totalBlocks / 4))
+
+    if not checkFuel(requiredFuel) then
         return
     end
+    if not checkInventory(requiredSlots) then
+        return
+    end
+
+    showSummary(length, branchInterval, branchLength, turtleCount)
 
     print("")
     print("Starting strip mine...")
     print("Main tunnel: " .. length .. " blocks")
     print("Branch every " .. branchInterval .. " blocks, " .. branchLength .. " blocks deep")
+    print("Estimated steps: " .. pathSteps)
+    print("Estimated blocks mined: " .. totalBlocks)
     print("")
     print("Press Enter to begin.")
     read()
