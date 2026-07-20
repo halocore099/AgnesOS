@@ -6,32 +6,35 @@ local ui = require("system.ui")
 local function drawHeader()
     ui.clear()
     local w, h = ui.size()
-    local fw = select(1, ui.flowerSize())
-    local flowerX = 3
+    local fw, fh = ui.flowerSize()
+    local flowerX = math.floor((w - fw) / 2) + 1
     local flowerY = 1
+
     ui.drawFlower(flowerX, flowerY)
-
-    ui.writeAt(flowerX + fw + 2, flowerY + 2, config.NAME, ui.theme.title)
-    ui.writeAt(flowerX + fw + 2, flowerY + 3, "v" .. config.VERSION, ui.theme.subtext)
-    ui.writeAt(flowerX + fw + 2, flowerY + 4, "for " .. config.OWNER, ui.theme.subtext)
-
-    ui.hr(flowerY + select(2, ui.flowerSize()) + 1, ui.theme.border)
-    return w, h
+    ui.centerText(config.NAME, flowerY + fh + 1, ui.theme.title)
+    ui.centerText("v" .. config.VERSION .. " • " .. config.OWNER, flowerY + fh + 2, ui.theme.subtext)
+    ui.hr(flowerY + fh + 4, ui.theme.border)
+    return w, h, flowerY + fh + 4
 end
 
 local function screen(title, body)
-    local w, h = drawHeader()
-    local topY = 12
+    local w, h, sectionY = drawHeader()
+    local topY = sectionY + 2
     ui.centerText(title, topY, ui.theme.title)
     for i, line in ipairs(body) do
-        ui.centerText(line, topY + 1 + i, ui.theme.text)
+        ui.centerText(line, topY + i, ui.theme.text)
     end
     ui.centerText("Press any key to return...", h - 1, ui.theme.subtext)
     os.pullEvent("key")
 end
 
 local function mining()
-    screen("Mining", { "Mining system", "Coming soon" })
+    local w, _, sectionY = drawHeader()
+    ui.centerText("Choose a mining routine:", sectionY + 1, ui.theme.subtext)
+    local choice = ui.menu(math.floor(w / 2) - 10, sectionY + 3, { "Strip Mine", "Back" })
+    if choice == 1 then
+        shell.run("system/stripmine")
+    end
 end
 
 local function utilities()
@@ -57,8 +60,9 @@ local items = { "Mining", "Utilities", "Settings", "Shutdown" }
 local actions = { mining, utilities, settings, shutdown }
 
 while true do
-    local w, h = drawHeader()
-    local menuY = 12
-    local choice = ui.menu(math.floor(w / 2) - 8, menuY, items)
+    local w, h, sectionY = drawHeader()
+    ui.centerText("Use arrows, numbers, or click to choose.", sectionY + 1, ui.theme.subtext)
+    local menuY = sectionY + 3
+    local choice = ui.menu(math.floor(w / 2) - 10, menuY, items)
     actions[choice]()
 end

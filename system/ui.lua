@@ -171,24 +171,26 @@ end
 function ui.menu(x, y, items, opts)
     opts = opts or {}
     local w = opts.width or 0
-    for _, item in ipairs(items) do
-        w = math.max(w, #item + 4)
+    local labels = {}
+    for i, item in ipairs(items) do
+        labels[i] = tostring(i) .. ". " .. item
+        w = math.max(w, #labels[i] + 4)
     end
     local selected = 1
 
     local function draw()
-        for i, item in ipairs(items) do
+        for i, label in ipairs(labels) do
             local rowY = y + (i - 1)
             if i == selected then
                 term.setBackgroundColor(ui.theme.selectBg)
                 term.setTextColor(ui.theme.selectFg)
                 term.setCursorPos(x, rowY)
-                term.write(" > " .. item .. string.rep(" ", w - #item - 3))
+                term.write(" > " .. label .. string.rep(" ", w - #label - 3))
             else
                 term.setBackgroundColor(ui.theme.bg)
                 term.setTextColor(ui.theme.text)
                 term.setCursorPos(x, rowY)
-                term.write("   " .. item .. string.rep(" ", w - #item - 3))
+                term.write("   " .. label .. string.rep(" ", w - #label - 3))
             end
         end
         term.setBackgroundColor(ui.theme.bg)
@@ -196,7 +198,7 @@ function ui.menu(x, y, items, opts)
 
     draw()
     while true do
-        local event, p1 = os.pullEvent()
+        local event, p1, p2, p3 = os.pullEvent()
         if event == "key" then
             if p1 == keys.up then
                 selected = selected - 1
@@ -215,6 +217,13 @@ function ui.menu(x, y, items, opts)
         elseif event == "char" then
             local n = tonumber(p1)
             if n and items[n] then return n end
+        elseif event == "mouse_click" then
+            local button, mx, my = p1, p2, p3
+            if button == 1 and mx >= x and mx <= x + w - 1 and my >= y and my < y + #items then
+                selected = my - y + 1
+                draw()
+                return selected
+            end
         end
     end
 end
