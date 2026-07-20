@@ -38,6 +38,10 @@ if remote ~= config.VERSION then
     updateFile("version.txt")
     updateFile("startup.lua")
     updateFile("system/ui.lua")
+    updateFile("system/stripmine.lua")
+    updateFile("system/turtle_agent.lua")
+    updateFile("system/turtle_controller.lua")
+    updateFile("turtle_install.lua")
 
     print("")
     print("Updated!")

@@ -55,10 +55,10 @@ end
 
 local function mining()
     local w, _, sectionY = drawHeader(1)
-    ui.centerText("Choose a mining routine:", sectionY + 1, ui.theme.subtext)
-    local choice = ui.menu(math.floor(w / 2) - 13, sectionY + 3, { "Strip Mine", "Info", "Back" }, { width = 32 })
+    ui.centerText("Control the turtle mining fleet.", sectionY + 1, ui.theme.subtext)
+    local choice = ui.menu(math.floor(w / 2) - 13, sectionY + 3, { "Open Controller", "Info", "Back" }, { width = 32 })
     if choice == 1 then
-        shell.run("system/stripmine")
+        shell.run("system/turtle_controller")
     elseif choice == 2 then
         miningInfo()
     end

@@ -1,7 +1,7 @@
--- Strip mine script for turtles.
+-- Strip mine module for turtles.
 -- Creates a simple main tunnel with side branches.
 
-local ui = require("system.ui")
+local stripmine = {}
 
 local function isTurtle()
     return type(turtle) == "table" and turtle.forward ~= nil
@@ -60,7 +60,7 @@ local function step()
     return true
 end
 
-local function addBranches(branchLength)
+local function addBranches(branchLength, report)
     local function mineBranch(turnLeft)
         if turnLeft then
             turtle.turnLeft()
@@ -68,18 +68,24 @@ local function addBranches(branchLength)
             turtle.turnRight()
         end
 
-        for _ = 1, branchLength do
+        for i = 1, branchLength do
             if not step() then
                 return false
+            end
+            if report then
+                report({ event = "branch_progress", branch = i, total = branchLength })
             end
         end
 
         turtle.turnRight()
         turtle.turnRight()
 
-        for _ = 1, branchLength do
+        for i = 1, branchLength do
             if not step() then
                 return false
+            end
+            if report then
+                report({ event = "branch_progress", branch = branchLength + i, total = branchLength * 2 })
             end
         end
 
@@ -100,32 +106,6 @@ local function addBranches(branchLength)
     return true
 end
 
-local function readNumber(prompt, default)
-    while true do
-        term.write(prompt)
-        if default then
-            term.write(" [" .. tostring(default) .. "]")
-        end
-        term.write(": ")
-        local input = read()
-        if input == "" and default then
-            return default
-        end
-        local value = tonumber(input)
-        if value and value >= 1 then
-            return math.floor(value)
-        end
-        print("Please enter a positive integer.")
-    end
-end
-
-local function confirm(prompt)
-    term.write(prompt .. " (Y/n): ")
-    local input = read()
-    input = input:lower()
-    return input == "" or input:sub(1, 1) == "y"
-end
-
 local function countEmptySlots()
     local free = 0
     for slot = 1, 16 do
@@ -143,21 +123,11 @@ local function estimateMine(length, branchInterval, branchLength)
     return branchCount, pathSteps, blocks
 end
 
-local function showHeader()
-    ui.clear()
-    ui.centerText("Strip Mine", 2, ui.theme.title)
-    ui.centerText("Simple turtle strip mining routine.", 4, ui.theme.subtext)
-    ui.centerText("Enter your tunnel settings below.", 5, ui.theme.subtext)
-end
-
 local function checkFuel(required)
     if turtle.getFuelLevel then
         local fuel = turtle.getFuelLevel()
         if fuel ~= "unlimited" and fuel ~= math.huge and fuel < required then
-            print("Warning: fuel level is " .. tostring(fuel) .. ", estimated needed " .. tostring(required) .. ".")
-            if not confirm("Refuel and continue?") then
-                return false
-            end
+            return false
         end
     end
     return true
@@ -166,74 +136,34 @@ end
 local function checkInventory(requiredSlots)
     local freeSlots = countEmptySlots()
     if freeSlots < requiredSlots then
-        print("Warning: only " .. freeSlots .. " empty inventory slots available.")
-        print("This strip mine may fill inventory quickly.")
-        if not confirm("Continue anyway?") then
-            return false
-        end
+        return false
     end
     return true
 end
 
-local function showSummary(length, branchInterval, branchLength, turtles)
-    local branchCount, pathSteps, totalBlocks = estimateMine(length, branchInterval, branchLength)
-    local perTurtle = math.max(1, math.ceil(totalBlocks / turtles))
-
-    ui.clear()
-    ui.centerText("Strip Mine Summary", 2, ui.theme.title)
-    ui.centerText("Main tunnel length: " .. length .. " blocks", 4, ui.theme.subtext)
-    ui.centerText("Branch every " .. branchInterval .. " blocks", 5, ui.theme.subtext)
-    ui.centerText("Branch length: " .. branchLength .. " blocks", 6, ui.theme.subtext)
-    ui.centerText("Assigned turtles: " .. turtles, 7, ui.theme.subtext)
-    ui.centerText("Estimated branch points: " .. branchCount, 8, ui.theme.subtext)
-    ui.centerText("Estimated mining steps: " .. pathSteps, 9, ui.theme.subtext)
-    ui.centerText("Estimated blocks mined: " .. totalBlocks, 10, ui.theme.subtext)
-    ui.centerText("Estimated blocks per turtle: " .. perTurtle, 11, ui.theme.subtext)
-    ui.centerText("Press any key to continue...", 13, ui.theme.subtext)
-    os.pullEvent("key")
-end
-
-local function main()
+local function run(params, report)
     if not isTurtle() then
         error("The strip mine routine must be run from a turtle.")
     end
 
-    showHeader()
-    local length = readNumber("Main tunnel length", 20)
-    local branchInterval = readNumber("Branch spacing", 4)
-    local branchLength = readNumber("Branch length", 4)
-    local turtleCount = readNumber("Turtles assigned", 1)
-
-    if turtleCount > 1 then
-        print("Note: this script is run from one turtle instance.")
-        print("Assigned turtle count is used for planning only.")
-        if not confirm("Continue with this plan?") then
-            return
-        end
-    end
+    local length = params.length or 20
+    local branchInterval = params.branchInterval or 4
+    local branchLength = params.branchLength or 4
 
     local branchCount, pathSteps, totalBlocks = estimateMine(length, branchInterval, branchLength)
     local requiredFuel = pathSteps + 5
     local requiredSlots = math.min(12, math.ceil(totalBlocks / 4))
 
     if not checkFuel(requiredFuel) then
-        return
+        error("Not enough fuel for requested strip mine.")
     end
     if not checkInventory(requiredSlots) then
-        return
+        error("Not enough inventory space for requested strip mine.")
     end
 
-    showSummary(length, branchInterval, branchLength, turtleCount)
-
-    print("")
-    print("Starting strip mine...")
-    print("Main tunnel: " .. length .. " blocks")
-    print("Branch every " .. branchInterval .. " blocks, " .. branchLength .. " blocks deep")
-    print("Estimated steps: " .. pathSteps)
-    print("Estimated blocks mined: " .. totalBlocks)
-    print("")
-    print("Press Enter to begin.")
-    read()
+    if report then
+        report({ event = "start", length = length, branchInterval = branchInterval, branchLength = branchLength, branchCount = branchCount, totalBlocks = totalBlocks })
+    end
 
     clearLine(turtle.detect, turtle.dig)
     clearLine(turtle.detectUp, turtle.digUp)
@@ -241,21 +171,30 @@ local function main()
 
     for i = 1, length do
         if not step() then
-            print("Stopped at block " .. i .. ".")
-            return
+            error("Stopped at block " .. i .. " due to obstruction.")
         end
 
         if i % branchInterval == 0 then
-            print("Branching at block " .. i .. "...")
-            if not addBranches(branchLength) then
-                print("Branching interrupted at block " .. i .. ".")
-                return
+            if report then
+                report({ event = "branch_start", block = i })
             end
+            if not addBranches(branchLength, report) then
+                error("Branching interrupted at block " .. i .. ".")
+            end
+        end
+
+        if report then
+            report({ event = "progress", step = i, total = length, percent = math.floor(i / length * 100) })
         end
     end
 
-    print("Strip mine complete. Main tunnel finished.")
-    print("Return to the entrance or continue mining manually.")
+    if report then
+        report({ event = "complete" })
+    end
 end
 
-main()
+local stripmine = {
+    run = run,
+}
+
+return stripmine

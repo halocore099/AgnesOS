@@ -82,6 +82,10 @@ local files = {
     "version.txt",
     "system/ui.lua",
     "system/updater.lua",
+    "system/stripmine.lua",
+    "system/turtle_agent.lua",
+    "system/turtle_controller.lua",
+    "turtle_install.lua",
 }
 
 if not fs.exists("system") then
